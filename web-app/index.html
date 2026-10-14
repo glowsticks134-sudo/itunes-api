@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="App Catalog">
+  <meta name="description" content="Search Apple's public App Store catalog.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>App Catalog</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b0b0d;--panel:#17171b;--muted:#a5a5af;--red:#ff3434;--line:#29292f}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#261012 0,#0b0b0d 46%);color:#f7f7fa;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+    .wrap{max-width:760px;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+    header{padding:16px 4px 22px}.eyebrow{color:var(--red);font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
+    h1{font-size:clamp(32px,8vw,44px);line-height:1.05;margin:8px 0}.sub{color:var(--muted);margin:8px 0 0;line-height:1.5}
+    .search{display:flex;gap:8px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 32px #0005}
+    input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:white;font:inherit;padding:9px 7px}
+    button{border:0;border-radius:12px;background:var(--red);color:white;font-weight:750;padding:0 18px;font:inherit;cursor:pointer;min-height:46px}
+    button:disabled{opacity:.6}.hint{font-size:12px;color:var(--muted);margin:10px 4px 20px}
+    #status{color:var(--muted);font-size:14px;margin:18px 4px}.results{display:grid;gap:10px}
+    .app{display:flex;gap:13px;align-items:center;background:linear-gradient(140deg,#1b1b20,#121215);border:1px solid var(--line);border-radius:18px;padding:13px}
+    .app img{width:66px;height:66px;flex:0 0 66px;object-fit:cover;border-radius:15px;background:#28282d}
+    .info{min-width:0;flex:1}.name{font-weight:750;line-height:1.25;overflow-wrap:anywhere}.dev{font-size:13px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
+    .meta{font-size:12px;color:#d1d1d8;margin-top:7px}.open{font-size:13px;min-height:39px;padding:0 12px;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .open:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid white;outline-offset:3px}
+    footer{font-size:12px;line-height:1.5;color:var(--muted);padding:24px 4px 0}a{color:#ff7777}
+    @media(max-width:420px){.app{gap:10px;padding:10px}.app img{width:56px;height:56px;flex-basis:56px}.open{padding:0 10px;font-size:12px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">iPhone app discovery</div>
+      <h1>App Catalog<span style="color:var(--red)">.</span></h1>
+      <p class="sub">Search Apple's public App Store listings in one simple place.</p>
+    </header>
+    <form class="search" id="search-form">
+      <input id="query" type="search" placeholder="Search apps, e.g. Roblox" autocomplete="off" autocapitalize="none" enterkeyhint="search" aria-label="Search apps">
+      <button id="search-button" type="submit">Search</button>
+    </form>
+    <p class="hint">Search results link to official App Store pages.</p>
+    <div id="status" role="status" aria-live="polite">Search for an app to get started.</div>
+    <section id="results" class="results" aria-label="App search results"></section>
+    <footer>App Catalog uses Apple's public iTunes Search API. Availability and installation are controlled by Apple, the app developer, and your device settings. This catalog cannot bypass Screen Time or parental controls.</footer>
+  </main>
+  <script>
+    const form = document.querySelector('#search-form');
+    const queryInput = document.querySelector('#query');
+    const button = document.querySelector('#search-button');
+    const status = document.querySelector('#status');
+    const results = document.querySelector('#results');
+    const esc = value => String(value ?? '');
+    function appCard(app) {
+      const card = document.createElement('article'); card.className = 'app';
+      const img = document.createElement('img'); img.src = app.artworkUrl100 || ''; img.alt = ''; img.loading = 'lazy';
+      const info = document.createElement('div'); info.className = 'info';
+      const name = document.createElement('div'); name.className = 'name'; name.textContent = esc(app.trackName);
+      const dev = document.createElement('div'); dev.className = 'dev'; dev.textContent = esc(app.artistName);
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const price = app.formattedPrice || (Number(app.price) === 0 ? 'Free' : '');
+      const rating = Number.isFinite(app.averageUserRating) ? ' ★ ' + app.averageUserRating.toFixed(1) : '';
+      meta.textContent = [price, rating].filter(Boolean).join(' · ');
+      info.append(name, dev, meta);
+      const link = document.createElement('a'); link.className = 'open'; link.textContent = 'View'; link.href = app.trackViewUrl || 'https://www.apple.com/app-store/'; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.setAttribute('aria-label', 'View ' + esc(app.trackName) + ' in the App Store');
+      card.append(img, info, link); return card;
+    }
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const term = queryInput.value.trim();
+      if (!term) { status.textContent = 'Enter an app name to search.'; queryInput.focus(); return; }
+      button.disabled = true; button.textContent = 'Searching'; status.textContent = 'Searching Apple’s catalog…'; results.replaceChildren();
+      try {
+        const url = new URL('https://itunes.apple.com/search');
+        url.search = new URLSearchParams({term, entity:'software', country:'us', limit:'25'}).toString();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Search request failed');
+        const data = await response.json();
+        if (!data.results || !data.results.length) { status.textContent = 'No matching apps found. Try another search.'; return; }
+        const fragment = document.createDocumentFragment();
+        data.results.forEach(app => fragment.append(appCard(app)));
+        results.append(fragment); status.textContent = 'Found ' + data.results.length + ' results for “' + term + '”.';
+      } catch (error) { status.textContent = 'Could not load results. Check your connection and try again.'; }
+      finally { button.disabled = false; button.textContent = 'Search'; }
+    });
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
