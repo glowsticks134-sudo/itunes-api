@@ -171,11 +171,19 @@ struct AppSearchView: View {
                 .listStyle(.plain)
                 .overlay {
                     if model.apps.isEmpty && !model.isLoading && model.errorMessage == nil {
-                        ContentUnavailableView(
-                            "Find an app",
-                            systemImage: "app.badge",
-                            description: Text("Search Apple's catalog for apps and open their official App Store pages.")
-                        )
+                        VStack(spacing: 10) {
+                            Image(systemName: "app.badge")
+                                .font(.system(size: 42))
+                                .foregroundStyle(.red)
+                            Text("Find an app")
+                                .font(.headline)
+                            Text("Search Apple's catalog for apps and open their official App Store pages.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 28)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
             }
