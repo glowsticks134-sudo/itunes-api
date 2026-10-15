@@ -20,26 +20,35 @@ concurrency:
 
 jobs:
   deploy:
+    name: Build and deploy App Catalog
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check out repository
+      - name: 1. Check out repository
         uses: actions/checkout@v4
 
-      - name: Verify App Catalog files
+      - name: 2. Show branch and files
         run: |
-          test -f web-app/index.html
-          test -f web-app/manifest.webmanifest
-          test -f web-app/service-worker.js
-          echo "App Catalog files found."
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Files in web-app:"
+          ls -la web-app
 
-      - name: Upload App Catalog site
+      - name: 3. Verify required PWA files
+        run: |
+          test -s web-app/index.html
+          test -s web-app/manifest.webmanifest
+          test -s web-app/service-worker.js
+          test -s web-app/icon.svg
+          echo "All required App Catalog files are present."
+
+      - name: 4. Upload website artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: web-app
 
-      - name: Deploy to GitHub Pages
+      - name: 5. Deploy website to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
